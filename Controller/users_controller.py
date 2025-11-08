@@ -1,10 +1,10 @@
-from flask import request,Blueprint,jsonify, make_response
+from flask import request,Blueprint,jsonify, make_response,session
 from Models.users_model import UsersModel
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity,unset_jwt_cookies
-import datetime
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from Models.portfolio_model import Portfolio
 
 obj = UsersModel()
-
+portfolio_obj = Portfolio()
 users_controller = Blueprint('users_controller', __name__)
 
 @users_controller.route('/', methods=['GET'])
@@ -14,17 +14,18 @@ def Home():
 @users_controller.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    print(data)
-
     user = obj.login(data)
     if user:
-        token = create_access_token(identity=data["email"], expires_delta=datetime.timedelta(days=1))
-        # ✅ Return the token in JSON instead of setting cookie
-        print("Generated token:", token)
+        session.permanent = True
+        session['user_id'] = user['user_id']
+        session['email'] = user['email']
+
         return jsonify({
             "msg": "Login successful",
-            "token": token
+            "user_id": user['user_id']
         }), 200
+
+        
     else:
         return jsonify({"msg": "Invalid credentials"}), 401
 
@@ -32,22 +33,31 @@ def login():
 
 @users_controller.route('/register', methods=['POST'])
 def register():
-    if request.method == 'POST':
-        data = request.get_json()
-        username = data.get("username")
-        name = data.get("name")
-        email = data.get("email")
-        password = data.get("password")
+    data = request.get_json()
+    username = data.get("username")
+    name = data.get("name")
+    email = data.get("email")
+    password = data.get("password")
 
-        token = create_access_token(identity=email, expires_delta=datetime.timedelta(days=1))
-        # set token in cookie
-        user = obj.register(username, name, email, password)
-        if user:
-            resp = make_response(jsonify({"msg": "User registered successfully"}))
-            resp.set_cookie("access_token_cookie", token, httponly=True, samesite="Strict")
-            return resp
-        else:
-            return jsonify({"msg": "Error: User not created"}), 400
+    user = obj.register(username, name, email, password)
+    
+    if user:
+        # Store user info in session
+        session.permanent = True
+        session['user_id'] = user['user_id']   # store the id of created user
+        session['email'] = user['email']  
+
+        portfolio_obj.add_balance(user['user_id'],500)
+
+        print(f"✅ Session created: user_id={session['user_id']}, email={session['email']}")  # Debug
+
+        # No need for cookie token here
+        return jsonify({
+            "msg": "User registered successfully",
+            "user_id": user['user_id']
+        }), 200
+    else:
+        return jsonify({"msg": "Error: User not created"}), 400
         
 @users_controller.route('/home', methods=['GET'])
 @jwt_required()
@@ -77,3 +87,16 @@ def check_auth():
     except Exception as e:
         print("JWT error:", e)
         return jsonify({'authenticated': False}), 401
+    
+
+@users_controller.route('/auth-status', methods=['GET'])
+def auth_status():
+    user_id = session.get('user_id')
+    if user_id:
+        return jsonify({
+            "logged_in": True,
+            "user_id": user_id,
+            "email": session.get('email')
+        }), 200
+    else:
+        return jsonify({"logged_in": False}), 200

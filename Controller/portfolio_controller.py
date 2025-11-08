@@ -1,16 +1,28 @@
-from flask import request,Blueprint,jsonify, make_response
-from Models.users_model import UsersModel
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity,unset_jwt_cookies
-import datetime
+from flask import request,Blueprint,jsonify,session
+from Models.portfolio_model import Portfolio
 
 
-obj = UsersModel()
+obj = Portfolio()
 
-users_controller = Blueprint('users_controller', __name__)
+portfolio_controller = Blueprint('portfolio_controller', __name__)
 
-@users_controller.route('/portfolio', methods=['GET'])
+@portfolio_controller.route('/portfolio', methods=['GET'])
 def Portfolio():
     return "Portfolio Page"
 
 
+
+@portfolio_controller.route('/balance', methods=['GET'])
+def balance():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"msg":"User not logged in"})
+    
+    balance = obj.get_balance(user_id)
+    if balance is None:
+        return jsonify({"msg": "Error fetching balance"}), 500
+    
+    return jsonify({
+        "balance":balance
+    }),200
 
