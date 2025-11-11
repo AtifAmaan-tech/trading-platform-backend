@@ -67,27 +67,21 @@ def home():
 
 @users_controller.route('/logout', methods=['POST'])
 def logout():
+    print("Before clear:", dict(session))
+    session.clear()
+    print("After clear:", dict(session))
     resp = make_response(jsonify({"msg": "Logout successful"}))
     resp.set_cookie(
-        "access_token_cookie",
-        "",
-        httponly=True,
-        samesite="Lax",
-        secure=False,
-        expires=0  # Expire the cookie immediately
-    )
+    'session', 
+    '', 
+    expires=0, 
+    path='/', 
+    httponly=True, 
+    secure=False,  # or True if using HTTPS
+    samesite='Lax'
+)
     return resp
 
-@users_controller.route('/check-auth', methods=['GET'])
-@jwt_required(locations=["cookies", "headers"])
-def check_auth():
-    try:
-        current_user = get_jwt_identity()
-        return jsonify({'authenticated': True, 'email': current_user}), 200
-    except Exception as e:
-        print("JWT error:", e)
-        return jsonify({'authenticated': False}), 401
-    
 
 @users_controller.route('/auth-status', methods=['GET'])
 def auth_status():
