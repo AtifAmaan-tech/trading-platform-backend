@@ -17,7 +17,6 @@ class UsersModel():
             user = cursor.fetchone()
 
             if user:
-                # Return a clean dict of user info
                 return {
                     "user_id": user["user_id"],
                     "username": user["username"],

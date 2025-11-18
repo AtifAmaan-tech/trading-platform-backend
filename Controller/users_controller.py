@@ -47,11 +47,10 @@ def register():
         session['user_id'] = user['user_id']   # store the id of created user
         session['email'] = user['email']  
 
-        portfolio_obj.add_balance(user['user_id'],500)
+        portfolio_obj.add_balance(user['user_id'],1000)
 
         print(f"✅ Session created: user_id={session['user_id']}, email={session['email']}")  # Debug
 
-        # No need for cookie token here
         return jsonify({
             "msg": "User registered successfully",
             "user_id": user['user_id']
