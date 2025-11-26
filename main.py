@@ -1,7 +1,5 @@
 import atexit
-from flask_jwt_extended import JWTManager
-from flask_cors import CORS
-from flask import Flask
+from flask import Flask, request, make_response
 from flask_session import Session
 from config import init_db_pool, close_db_pool
 from dotenv import load_dotenv
@@ -12,43 +10,70 @@ from Controller import controllers
 load_dotenv()
 
 app = Flask(__name__)
-Session(app)
-init_db_pool()
-
-# --- CHANGE 1: Clean up CORS Origins ---
-# Removed trailing slashes (e.g., .dev/) as they can sometimes cause matching issues
-CORS(app, resources={r"/*": {
-    "origins": [
-        "http://localhost:5173",
-        "https://trading-platform-nu.vercel.app",
-        "https://bioluminescent-deidre-dilative.ngrok-free.dev",
-    ],
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization"],
-    "supports_credentials": True,
-    "expose_headers": ["Content-Type"]
-}})
-
 
 app.secret_key = os.getenv("SECRET_KEY")
 
-# --- CHANGE 2: CRITICAL SESSION FIX ---
+# Session configuration
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_USE_SIGNER'] = True
+app.config['SESSION_FILE_DIR'] = './flask_session'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['SESSION_COOKIE_NAME'] = 'session'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-
-# For Vercel -> Backend, you are Cross-Site. You MUST use 'None'.
 app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
-
-# ERROR WAS HERE: Browsers REJECT SameSite='None' cookies if they are not Secure (HTTPS).
 app.config['SESSION_COOKIE_SECURE'] = True 
 
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+# Create session directory if it doesn't exist
+if not os.path.exists('./flask_session'):
+    os.makedirs('./flask_session')
 
+Session(app)
+init_db_pool()
 
+# Allowed origins - add your Render URL here after deployment
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://trading-platform-nu.vercel.app"
+]
+
+@app.before_request
+def handle_cors_preflight():
+    """Handle CORS preflight requests"""
+    origin = request.headers.get('Origin')
+    
+    if request.method == 'OPTIONS':
+        response = make_response('', 204)
+        if origin in ALLOWED_ORIGINS:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Max-Age'] = '86400'
+        return response
+
+@app.after_request
+def add_cors_and_security_headers(response):
+    """Add CORS headers to every response"""
+    origin = request.headers.get('Origin')
+    
+    if origin in ALLOWED_ORIGINS:
+        response.headers.pop('Access-Control-Allow-Origin', None)
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Vary'] = 'Origin'
+    
+    return response
+
+# Register blueprints
 for bp in controllers:
     app.register_blueprint(bp)
 
 atexit.register(close_db_pool)
 
-if __name__ == '__main__':    
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == '__main__':
+    # Use PORT environment variable for Render, default to 5000 for local
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)  # debug=False for production

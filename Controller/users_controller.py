@@ -27,7 +27,7 @@ def login():
 
         
     else:
-        return jsonify({"msg": "Invalid credentials"}), 401
+        return jsonify({"message": "Invalid credentials"}), 401
 
     
 
