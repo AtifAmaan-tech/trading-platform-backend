@@ -34,7 +34,8 @@ init_db_pool()
 # Allowed origins - add your Render URL here after deployment
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "https://trading-platform-nu.vercel.app"
+    "https://trading-platform-nu.vercel.app",
+    "https://trading-platform-backend-1.onrender.com",
 ]
 
 @app.before_request

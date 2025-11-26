@@ -2,7 +2,6 @@ Flask
 flask-cors
 flask-session
 python-dotenv
-flask-jwt-extended
 
 psycopg2-binary
 
