@@ -26,11 +26,12 @@ def create_transaction():
             token_amount = request.json.get("data", {}).get("amount")
             total_amount = request.json.get("data", {}).get("total")
             price = request.json.get("data", {}).get("price")
-            print("total amount: ", total_amount)
             obj.create_transaction(transaction_id, user_id, token_name, order_type, trade_type, total_amount, price, token_amount)
             portfolio_obj.update_balance(total_amount, user_id, trade_type)
-
-            portfolio_obj.add_token(user_id, token_name, token_amount, price)
+            if trade_type == 'buy':
+                portfolio_obj.add_token(user_id, token_name, token_amount, price)
+            else:
+                portfolio_obj.deduct_token(user_id, token_name, token_amount, total_amount)
             return jsonify({"msg": "Transaction Created Successfully"}),200
         except Exception as e:
             print(e) 
@@ -41,10 +42,9 @@ def create_transaction():
 @trade_controller.route("/get_trades", methods=['GET'])
 def get_trades():
     try:
-        user_id = session.get('user_id')
+        user_id = session['user_id']
         if not user_id:
             return jsonify({"msg":"User not logged in"})
-        print(user_id)
         trades = obj.get_trades(user_id)
         return jsonify({"trades":trades}),200
 

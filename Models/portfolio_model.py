@@ -13,7 +13,6 @@ class Portfolio():
             result = cursor.fetchone()
             cursor.close()
             release_db_connection(conn)
-            print(result)
             if result:
                 return result['token_balance']
             return 0
@@ -113,5 +112,48 @@ class Portfolio():
             if conn:
                 release_db_connection(conn)
             return 0
+        
+    def deduct_token(self, user_id, token_symbol, quantity,total_amount):
+        try: 
+            conn = get_db_connection()
+            cursor = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+            qry = """UPDATE portfolio
+                    SET 
+                    quantity = quantity - %s,
+                    token_balance = token_balance - %s 
+                    WHERE user_id = %s AND 
+                    token_symbol=%s"""
+            values = (quantity, total_amount, user_id, token_symbol)
+            cursor.execute(qry,values)
+            conn.commit()
+            cursor.close()
+            release_db_connection(conn)
+            return True
+        except Exception as e:
+            print("Error deducting token", e)
+            if conn:
+                release_db_connection(conn)
+            return 0
+
+    def get_total_balance(self, user_id):
+        conn = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            qry = "Select token_symbol,quantity from portfolio where user_id = %s;"
+            values = (user_id,)
+            cursor.execute(qry,values)
+            result = cursor.fetchall()
+            cursor.close()
+            release_db_connection(conn)
+            if result:
+                return result
+            return 0
+        except Exception as e:
+            print("❌ Database Error:", e)
+            if conn:
+                release_db_connection(conn)
+            return 0
+        
 
 

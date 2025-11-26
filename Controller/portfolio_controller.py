@@ -41,6 +41,19 @@ def get_tokens_qty():
         print(e)
     return 0
         
+@portfolio_controller.route('/total-balance', methods=['GET'])
+def total_balance():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"msg":"User not logged in"})
+    
+    balance = obj.get_total_balance(user_id)
+    if balance is None:
+        return jsonify({"msg": "Error fetching balance"}), 500
+    
+    return jsonify({
+        "balance":balance
+    }),200
 
 
     

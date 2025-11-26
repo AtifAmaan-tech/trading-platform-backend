@@ -19,7 +19,7 @@ def login():
         session.permanent = True
         session['user_id'] = user['user_id']
         session['email'] = user['email']
-
+        print(session.get('user_id'))
         return jsonify({
             "msg": "Login successful",
             "user_id": user['user_id']
