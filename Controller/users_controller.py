@@ -1,6 +1,5 @@
 from flask import request,Blueprint,jsonify, make_response,session
 from Models.users_model import UsersModel
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from Models.portfolio_model import Portfolio
 
 obj = UsersModel()
@@ -59,10 +58,8 @@ def register():
         return jsonify({"msg": "Error: User not created"}), 400
         
 @users_controller.route('/home', methods=['GET'])
-@jwt_required()
 def home():
-    current_user = get_jwt_identity()
-    return jsonify({"msg": f"Welcome {current_user}"})
+    return jsonify({"msg": f"Welcome!"})
 
 @users_controller.route('/logout', methods=['POST'])
 def logout():
