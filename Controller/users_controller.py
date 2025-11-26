@@ -14,17 +14,17 @@ def Home():
 def login():
     data = request.get_json()
     user = obj.login(data)
+    print(data)
     if user:
         session.permanent = True
         session['user_id'] = user['user_id']
         session['email'] = user['email']
         print(session.get('user_id'))
+        print("Login Successful !")
         return jsonify({
             "msg": "Login successful",
             "user_id": user['user_id']
         }), 200
-
-        
     else:
         return jsonify({"message": "Invalid credentials"}), 401
 
@@ -89,4 +89,4 @@ def auth_status():
             "email": session.get('email')
         }), 200
     else:
-        return jsonify({"logged_in": False}), 200
+        return jsonify({"logged_in": False}), 500
